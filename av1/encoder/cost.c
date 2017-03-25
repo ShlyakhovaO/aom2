@@ -13,7 +13,7 @@
 #include "av1/encoder/cost.h"
 #include "av1/common/entropy.h"
 
-/* round(-log2(i/256.) * (1 << AV1_PROB_COST_SHIFT))
+/* round(                         -log2(i/256.) * (1 << AV1_PROB_COST_SHIFT)                 )
    Begins with a bogus entry for simpler addressing. */
 const uint16_t av1_prob_cost[256] = {
   4096, 4096, 3584, 3284, 3072, 2907, 2772, 2659, 2560, 2473, 2395, 2325, 2260,

@@ -2885,6 +2885,7 @@ static int64_t rd_pick_intra_sby_mode(const AV1_COMP *const cpi, MACROBLOCK *x,
   od_encode_checkpoint(&x->daala_enc, &post_buf);
 #endif
   bmode_costs = cpi->y_mode_costs[A][L];
+// printf("\n intra contexts: %d %d %d", bsize, A, L);
 
 #if CONFIG_EXT_INTRA
   mic->mbmi.angle_delta[0] = 0;

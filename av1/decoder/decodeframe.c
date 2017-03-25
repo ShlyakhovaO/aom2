@@ -1833,8 +1833,22 @@ static void decode_partition(AV1Decoder *const pbi, MACROBLOCKD *const xd,
 	case	  BLOCK_64X32: length=32;	 break;
 	case	  BLOCK_64X64: length=64;	 break;
   }
-
-  printf(" coords: %d %d %d %d partition= %d\n", mi_col * 8, mi_row * 8, mi_col * 8 + length, mi_row * 8 + length, partition);
+  if (partition == 0)
+  {
+	  printf(" coords: %d %d %d %d partition= %d\n", mi_col * 8, mi_row * 8, mi_col * 8 + length, mi_row * 8 + length, partition);
+  }
+  else if (partition == 1)
+  {
+	  printf(" coords: %d %d %d %d partition= %d\n", mi_col * 8, mi_row * 8, mi_col * 8 + length / 2, mi_row * 8 + length, partition);
+  }
+  else if (partition == 2)
+  {
+	  printf(" coords: %d %d %d %d partition= %d\n", mi_col * 8, mi_row * 8, mi_col * 8 + length, mi_row * 8 + length / 2, partition);
+  }
+  else 
+  {
+	  printf(" coords: %d %d %d %d partition= %d\n", mi_col * 8, mi_row * 8, mi_col * 8 + length, mi_row * 8 + length, partition);
+  }
 
 #if CONFIG_PVQ
   assert(partition < PARTITION_TYPES);
