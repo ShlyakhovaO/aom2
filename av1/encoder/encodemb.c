@@ -952,8 +952,14 @@ void av1_encode_block_intra(int plane, int block, int blk_row, int blk_col,
   src_diff =
       &p->src_diff[(blk_row * diff_stride + blk_col) << tx_size_wide_log2[0]];
   mode = plane == 0 ? get_y_mode(xd->mi[0], block) : mbmi->uv_mode;
+
+/*
   av1_predict_intra_block(xd, pd->width, pd->height, tx_size, mode, dst,
                           dst_stride, dst, dst_stride, blk_col, blk_row, plane);
+	*/					  
+//kolya
+  av1_predict_intra_block(xd, pd->width, pd->height, tx_size, mode, src,
+	  src_stride, dst, dst_stride, blk_col, blk_row, plane);
 
   if (check_subtract_block_size(tx1d_width, tx1d_height)) {
 #if CONFIG_AOM_HIGHBITDEPTH

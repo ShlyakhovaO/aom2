@@ -1704,7 +1704,7 @@ static PARTITION_TYPE read_partition(AV1_COMMON *cm, MACROBLOCKD *xd,
 	//(выдаёт номер строки в таблице вероятностей)
 	const int ctx = partition_plane_context(xd, mi_row, mi_col, bsize);
 
-	printf("ctx_num: %d", ctx);
+//	printf("ctx_num: %d", ctx);
 
 	const aom_prob *const probs = cm->fc->partition_prob[ctx];
 	FRAME_COUNTS *counts = xd->counts;
@@ -1722,7 +1722,7 @@ static PARTITION_TYPE read_partition(AV1_COMMON *cm, MACROBLOCKD *xd,
 	p = (PARTITION_TYPE)aom_read_symbol(r, cm->fc->partition_cdf[ctx],
 		PARTITION_TYPES, ACCT_STR);
 
-	printf(" prob: %d", probs[0]);
+//	printf(" prob: %d", probs[0]);
 }
 #else
     p = (PARTITION_TYPE)aom_read_tree(r, av1_partition_tree, probs, ACCT_STR);
@@ -1730,15 +1730,15 @@ static PARTITION_TYPE read_partition(AV1_COMMON *cm, MACROBLOCKD *xd,
 #endif  // CONFIG_EXT_PARTITION_TYPES
   else if (!has_rows && has_cols) {
 	  p = aom_read(r, probs[1], ACCT_STR) ? PARTITION_SPLIT : PARTITION_HORZ;
-	  printf(" prob: %d", probs[1]);
+//	  printf(" prob: %d", probs[1]);
   }
   else if (has_rows && !has_cols) {
 	  p = aom_read(r, probs[2], ACCT_STR) ? PARTITION_SPLIT : PARTITION_VERT;
-	  printf(" prob: %d", probs[2]);
+//	  printf(" prob: %d", probs[2]);
   }
   else {
 	  p = PARTITION_SPLIT;
-	  printf(" prob: -1"); //split is necessary coz at boundaries
+//	  printf(" prob: -1"); //split is necessary coz at boundaries
   }
 
   if (counts) ++counts->partition[ctx][p];
@@ -1835,19 +1835,19 @@ static void decode_partition(AV1Decoder *const pbi, MACROBLOCKD *const xd,
   }
   if (partition == 0)
   {
-	  printf(" coords: %d %d %d %d partition= %d\n", mi_col * 8, mi_row * 8, mi_col * 8 + length, mi_row * 8 + length, partition);
+//	  printf(" coords: %d %d %d %d partition= %d\n", mi_col * 8, mi_row * 8, mi_col * 8 + length, mi_row * 8 + length, partition);
   }
   else if (partition == 1)
   {
-	  printf(" coords: %d %d %d %d partition= %d\n", mi_col * 8, mi_row * 8, mi_col * 8 + length / 2, mi_row * 8 + length, partition);
+//	  printf(" coords: %d %d %d %d partition= %d\n", mi_col * 8, mi_row * 8, mi_col * 8 + length / 2, mi_row * 8 + length, partition);
   }
   else if (partition == 2)
   {
-	  printf(" coords: %d %d %d %d partition= %d\n", mi_col * 8, mi_row * 8, mi_col * 8 + length, mi_row * 8 + length / 2, partition);
+//	  printf(" coords: %d %d %d %d partition= %d\n", mi_col * 8, mi_row * 8, mi_col * 8 + length, mi_row * 8 + length / 2, partition);
   }
   else 
   {
-	  printf(" coords: %d %d %d %d partition= %d\n", mi_col * 8, mi_row * 8, mi_col * 8 + length, mi_row * 8 + length, partition);
+//	  printf(" coords: %d %d %d %d partition= %d\n", mi_col * 8, mi_row * 8, mi_col * 8 + length, mi_row * 8 + length, partition);
   }
 
 #if CONFIG_PVQ
