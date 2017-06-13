@@ -12,14 +12,14 @@
 #ifndef AV1_COMMON_RECONINTER_H_
 #define AV1_COMMON_RECONINTER_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "av1/common/filter.h"
 #include "av1/common/onyxc_int.h"
 #include "av1/common/convolve.h"
 #include "aom/aom_integer.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 static INLINE void inter_predictor(const uint8_t *src, int src_stride,
                                    uint8_t *dst, int dst_stride,
@@ -428,7 +428,7 @@ static INLINE int has_subpel_mv_component(const MODE_INFO *const mi,
     }
   } else {
     for (plane = 0; plane < MAX_MB_PLANE; ++plane) {
-      const PARTITION_TYPE bp = BLOCK_8X8 - bsize;
+      const PARTITION_TYPE bp = (PARTITION_TYPE)(BLOCK_8X8 - bsize);
       const struct macroblockd_plane *const pd = &xd->plane[plane];
       const int have_vsplit = bp != PARTITION_HORZ;
       const int have_hsplit = bp != PARTITION_VERT;
