@@ -3515,6 +3515,8 @@ typedef struct {
 	bool hasChildren;
 	PARTITION_TYPE part_type;
 
+	bool set_children;
+
 } tree_idx;
 
 static std::stack<tree_idx> ranking_idx;
@@ -4835,6 +4837,7 @@ static void encode_rd_sb_row(AV1_COMP *cpi, ThreadData *td,
 	  root._mi_row = 0;
 	  root._pc_tree = pc_root;
 	  root._sb_size = cm->sb_size;
+	  root.set_children = false;
 
 	  ranking_idx.push(root);
 	  working_idx.push(root);
@@ -4842,41 +4845,51 @@ static void encode_rd_sb_row(AV1_COMP *cpi, ThreadData *td,
 	  while (!ranking_idx.empty()) {
 
 		  tree_idx parameters = ranking_idx.top();
-		  ranking_idx.pop();
 
 		  //подготовка дочерних индексов 
+		  if (parameters.set_children == false)
+		  {
 
-		  int do_square_split = (parameters._sb_size >= BLOCK_8X8);
-		  MACROBLOCK *const x = &td->mb;
-		  BLOCK_SIZE min_size = x->min_partition_size;
-		  do_square_split &= parameters._sb_size > min_size;
-		  const int mi_step = mi_size_wide[parameters._sb_size] / 2;
+			  int do_square_split = (parameters._sb_size >= BLOCK_8X8);
+			  MACROBLOCK *const x = &td->mb;
+			  BLOCK_SIZE min_size = x->min_partition_size;
+			  do_square_split &= parameters._sb_size > min_size;
+			  const int mi_step = mi_size_wide[parameters._sb_size] / 2;
 
-		  //стек требует обратного порядка
-		  if( do_square_split )
-		  for (int idx = 0; idx < 4; idx++) {
+			  //стек требует обратного порядка
+			  if (do_square_split)
+				  for (int idx = 3; idx >= 0; idx--) {
 
-			  const int x_idx = (idx & 1) * mi_step;
-			  const int y_idx = (idx >> 1) * mi_step;
+					  const int x_idx = (idx & 1) * mi_step;
+					  const int y_idx = (idx >> 1) * mi_step;
 
-			  if (parameters._mi_row + y_idx >= cm->mi_rows || parameters._mi_col + x_idx >= cm->mi_cols)
-				  continue;
+					  if (parameters._mi_row + y_idx >= cm->mi_rows || parameters._mi_col + x_idx >= cm->mi_cols)
+						  continue;
 
-			  parameters._pc_tree->split[idx]->index = idx;
+					  parameters._pc_tree->split[idx]->index = idx;
 
-			  tree_idx child;
-			  child.hasChildren = true;
-			  child.part_type = PARTITION_SPLIT;
-			  child._mi_col = parameters._mi_col + x_idx;
-			  child._mi_row = parameters._mi_row + y_idx;
-			  child._sb_size = get_subsize(parameters._sb_size, PARTITION_SPLIT);
-			  child._pc_tree = parameters._pc_tree->split[idx];
+					  tree_idx child;
+					  child.hasChildren = true;
+					  child.part_type = PARTITION_SPLIT;
+					  child._mi_col = parameters._mi_col + x_idx;
+					  child._mi_row = parameters._mi_row + y_idx;
+					  child._sb_size = get_subsize(parameters._sb_size, PARTITION_SPLIT);
+					  child._pc_tree = parameters._pc_tree->split[idx];
+					  child.set_children = false;
 
-			  ranking_idx.push(child);
-			  working_idx.push(child);
+					  ranking_idx.push(child);
+
+				  }
+			  parameters.set_children = true;
+		  }
+		  else {
+			  working_idx.push(parameters);
+			  ranking_idx.pop();
 		  }
 	  }
-		  
+
+	  exit(0);
+/*		  
 	  while (!working_idx.empty()) {
 		  
 		  tree_idx parameters = working_idx.top();
@@ -4890,7 +4903,7 @@ static void encode_rd_sb_row(AV1_COMP *cpi, ThreadData *td,
 		  INT64_MAX, parameters._pc_tree);
 		  
 	  }
-
+	  */
     }
   }
 
