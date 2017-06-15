@@ -4844,17 +4844,21 @@ static void encode_rd_sb_row(AV1_COMP *cpi, ThreadData *td,
 
 	  while (!ranking_idx.empty()) {
 
-		  tree_idx parameters = ranking_idx.top();
+//		  tree_idx parameters = ranking_idx.top();
 
 		  //подготовка дочерних индексов 
-		  if (parameters.set_children == false)
+		  if (ranking_idx.top().set_children == false)
 		  {
 
-			  int do_square_split = (parameters._sb_size >= BLOCK_8X8);
+			  //это условие нужно, чтобы в дерево не входили разбиения 4х4
+			  //в оригинале оно было parameters._sb_size >= BLOCK_8X8
+			  //и было связано с конфигурацией unify_bsize
+			  int do_square_split = (ranking_idx.top()._sb_size > BLOCK_8X8);
+
 			  MACROBLOCK *const x = &td->mb;
 			  BLOCK_SIZE min_size = x->min_partition_size;
-			  do_square_split &= parameters._sb_size > min_size;
-			  const int mi_step = mi_size_wide[parameters._sb_size] / 2;
+			  do_square_split &= ranking_idx.top()._sb_size > min_size;
+			  const int mi_step = mi_size_wide[ranking_idx.top()._sb_size] / 2;
 
 			  //стек требует обратного порядка
 			  if (do_square_split)
@@ -4863,27 +4867,27 @@ static void encode_rd_sb_row(AV1_COMP *cpi, ThreadData *td,
 					  const int x_idx = (idx & 1) * mi_step;
 					  const int y_idx = (idx >> 1) * mi_step;
 
-					  if (parameters._mi_row + y_idx >= cm->mi_rows || parameters._mi_col + x_idx >= cm->mi_cols)
+					  if (ranking_idx.top()._mi_row + y_idx >= cm->mi_rows || ranking_idx.top()._mi_col + x_idx >= cm->mi_cols)
 						  continue;
 
-					  parameters._pc_tree->split[idx]->index = idx;
+					  ranking_idx.top()._pc_tree->split[idx]->index = idx;
 
 					  tree_idx child;
 					  child.hasChildren = true;
 					  child.part_type = PARTITION_SPLIT;
-					  child._mi_col = parameters._mi_col + x_idx;
-					  child._mi_row = parameters._mi_row + y_idx;
-					  child._sb_size = get_subsize(parameters._sb_size, PARTITION_SPLIT);
-					  child._pc_tree = parameters._pc_tree->split[idx];
+					  child._mi_col = ranking_idx.top()._mi_col + x_idx;
+					  child._mi_row = ranking_idx.top()._mi_row + y_idx;
+					  child._sb_size = get_subsize(ranking_idx.top()._sb_size, PARTITION_SPLIT);
+					  child._pc_tree = ranking_idx.top()._pc_tree->split[idx];
 					  child.set_children = false;
 
 					  ranking_idx.push(child);
 
 				  }
-			  parameters.set_children = true;
+			  ranking_idx.top().set_children = true;
 		  }
 		  else {
-			  working_idx.push(parameters);
+			  working_idx.push(ranking_idx.top());
 			  ranking_idx.pop();
 		  }
 	  }
