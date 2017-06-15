@@ -3004,8 +3004,8 @@ static int64_t rd_pick_intra_sby_mode(uint8_t mode_fixed, const AV1_COMP *const 
 						  int actual_cost = RDCOST(x->rdmult, x->rddiv, this_rate, this_distortion);
 						  int ctx_cost = RDCOST(x->rdmult, x->rddiv, ctx_rate, this_distortion);
 
-						  printf("\nmode= %d A= %d L= %d rate= %d actual_rate= %d actual_dist= %d actual_cost= %d cost= %d best_cost= %d",
-							  mode_idx, pA, pL, ctx_rate, this_rate, this_distortion, actual_cost, ctx_cost, best_rd);
+						 // printf("\nmode= %d A= %d L= %d rate= %d actual_rate= %d actual_dist= %d actual_cost= %d cost= %d best_cost= %d",
+							//  mode_idx, pA, pL, ctx_rate, this_rate, this_distortion, actual_cost, ctx_cost, best_rd);
 					  }
 				  }
 			  }
@@ -3021,7 +3021,7 @@ static int64_t rd_pick_intra_sby_mode(uint8_t mode_fixed, const AV1_COMP *const 
 					  [tx_size_to_depth(mic->mbmi.tx_size)];
 			  }
 
-			  //			  printf("\nbsize=\t%d\tmoda=\t%d\tA=\t%d\tL=\t%d\trate=\t%d\tdist=\t%d\trate_tokenonly= %d\t", bsize, mode_idx, A, L, this_rate, this_distortion, this_rate_tokenonly);
+			   printf("\nbsize=\t%d\tmoda=\t%d\tA=\t%d\tL=\t%d\trate=\t%d\tdist=\t%d\trate_tokenonly= %d\t", bsize, mode_idx, A, L, this_rate, this_distortion, this_rate_tokenonly);
 
 			  //todo: insert print of x,y
 			  if (bsize == 3) {
