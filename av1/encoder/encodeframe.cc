@@ -11,6 +11,7 @@
 
 #ifdef __cplusplus
 #include <stack>
+#include <vector>
 	extern "C" {
 #endif
 
@@ -3520,7 +3521,7 @@ typedef struct {
 } tree_idx;
 
 static std::stack<tree_idx> ranking_idx;
-static std::stack<tree_idx> working_idx;
+static std::vector<tree_idx> working_idx;
 
 static void rd_pick_partition(const AV1_COMP *const cpi, ThreadData *td,
 	TileDataEnc *tile_data, TOKENEXTRA **tp,
@@ -4840,56 +4841,50 @@ static void encode_rd_sb_row(AV1_COMP *cpi, ThreadData *td,
 	  root.set_children = false;
 
 	  ranking_idx.push(root);
-	  working_idx.push(root);
 
 	  while (!ranking_idx.empty()) {
 
-//		  tree_idx parameters = ranking_idx.top();
+		  tree_idx parameters = ranking_idx.top();
 
-		  //подготовка дочерних индексов 
-		  if (ranking_idx.top().set_children == false)
-		  {
+		  working_idx.push_back(parameters);
+		  ranking_idx.pop();
 
 			  //это условие нужно, чтобы в дерево не входили разбиения 4х4
 			  //в оригинале оно было parameters._sb_size >= BLOCK_8X8
 			  //и было связано с конфигурацией unify_bsize
-			  int do_square_split = (ranking_idx.top()._sb_size > BLOCK_8X8);
+			  int do_square_split = (parameters._sb_size > BLOCK_8X8);
 
 			  MACROBLOCK *const x = &td->mb;
 			  BLOCK_SIZE min_size = x->min_partition_size;
-			  do_square_split &= ranking_idx.top()._sb_size > min_size;
-			  const int mi_step = mi_size_wide[ranking_idx.top()._sb_size] / 2;
+			  do_square_split &= parameters._sb_size > min_size;
+			  const int mi_step = mi_size_wide[parameters._sb_size] / 2;
 
 			  //стек требует обратного порядка
-			  if (do_square_split)
+			  if (do_square_split) {
 				  for (int idx = 3; idx >= 0; idx--) {
 
 					  const int x_idx = (idx & 1) * mi_step;
 					  const int y_idx = (idx >> 1) * mi_step;
 
-					  if (ranking_idx.top()._mi_row + y_idx >= cm->mi_rows || ranking_idx.top()._mi_col + x_idx >= cm->mi_cols)
+					  if (parameters._mi_row + y_idx >= cm->mi_rows || parameters._mi_col + x_idx >= cm->mi_cols)
 						  continue;
 
-					  ranking_idx.top()._pc_tree->split[idx]->index = idx;
+					  parameters._pc_tree->split[idx]->index = idx;
 
 					  tree_idx child;
 					  child.hasChildren = true;
 					  child.part_type = PARTITION_SPLIT;
-					  child._mi_col = ranking_idx.top()._mi_col + x_idx;
-					  child._mi_row = ranking_idx.top()._mi_row + y_idx;
-					  child._sb_size = get_subsize(ranking_idx.top()._sb_size, PARTITION_SPLIT);
-					  child._pc_tree = ranking_idx.top()._pc_tree->split[idx];
+					  child._mi_col = parameters._mi_col + x_idx;
+					  child._mi_row = parameters._mi_row + y_idx;
+					  child._sb_size = get_subsize(parameters._sb_size, PARTITION_SPLIT);
+					  child._pc_tree = parameters._pc_tree->split[idx];
 					  child.set_children = false;
 
 					  ranking_idx.push(child);
 
 				  }
-			  ranking_idx.top().set_children = true;
-		  }
-		  else {
-			  working_idx.push(ranking_idx.top());
-			  ranking_idx.pop();
-		  }
+//				  ranking_idx.top().set_children = true;
+			  }
 	  }
 
 	  exit(0);
