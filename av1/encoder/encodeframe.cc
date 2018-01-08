@@ -3516,7 +3516,7 @@ typedef struct {
 	bool hasChildren;
 	PARTITION_TYPE part_type;
 
-	bool set_children;
+	bool visited;
 
 } tree_idx;
 
@@ -3543,98 +3543,6 @@ static void rd_pick_partition(const AV1_COMP *const cpi, ThreadData *td,
 	const int bsize_at_least_8x8 = (bsize >= BLOCK_8X8);
 	int do_square_split = bsize_at_least_8x8;
 
-	RD_COST part_rdc[4];
-	int condition = 1; // (mi_row == 4 && mi_col == 4 && bsize == BLOCK_8X8);
-	int ctx_min=0, ctx_max=0;
-
-	int best_mode_for_us = 100;
-	int best_mode_by_tokenonly = 100;
-	int best_mode_by_dist = 100;
-
-	//kolya
-	//индексация прохода дерева
-	tree_idx T;
-
-	T.hasChildren = true;
-	T._best_rdc = INT_MAX;
-	T._mi_col = mi_col;
-	T._mi_row = mi_row;
-	T._pc_tree = pc_tree;
-	T._sb_size = bsize;
-	T.part_type = PARTITION_INVALID;
-
-	ranking_idx.push(T);
-	//<-- конец записи индекса в стек
-
-	switch (bsize) {
-	case BLOCK_64X64:
-		ctx_min = 12; ctx_max = 16;
-		break;
-	case BLOCK_32X32:
-		ctx_min = 8; ctx_max = 12;
-		break;
-	case BLOCK_16X16:
-		ctx_min = 4; ctx_max = 8;
-		break;
-	case BLOCK_8X8:
-		ctx_min = 0; ctx_max = 4;
-		break;
-	}
-
-	//purple
-//	const int my_zh[4] = { 633,   1573,   1554,    809 };
-
-	//prosto tak
-	const int my_zh[4] = { 0,   0,   0,    0 };
-
-	//green
-	const int my_part_cost[16][4] = {
-
-		{62  , 2584  , 2654  , 2807	 },
-		{174 ,  2311 ,  1666 ,  2065 },
-		{179 ,  1701 ,  2375 ,  1912 },
-		{238 ,  1975 ,  1676 ,  1676 },
-
-		{402  , 1662  , 1711  , 1133  },
-		{634  , 1874  , 1303  ,  829  },
-		{792  , 1273  , 1700  ,  716  },
-		{1029 ,  1586 ,  1491 ,   509 },
-
-		{1111 ,  1858 ,  2205 ,   322 },
-		{1425 ,  2863 ,  2614 ,   160 },
-		{1488 ,  2442 ,  2890 ,   156 },
-		{2332 ,  3424 ,  3226 ,    50 },
-
-		{105   ,    2982   ,    3180   ,    1688  },
-		{937   ,    2292   ,    1593   ,     431  },
-		{1097  ,     1726  ,     2549  ,      324 },
-		{2395  ,     2688  ,     2821  ,       67 }
-	};
-
-	//olya
-	//yellow
-/*
-	186       1657       2029       2179
-		410       1667       1192       1557
-		405       1121       1750       1634
-		554       1138       1456       1293
-
-		285       1768       1886       1396
-		756       1682       1290        747
-		841        987       1852        807
-		1163       1561       1683        415
-
-		273       1965       2142       1252
-		979       1917       1343        516
-		1177       1036       2159        517
-		2003       2198       2353        128
-
-		105       2982       3180       1688
-		937       2292       1593        431
-		1097       1726       2549        324
-		2395       2688       2821         67
-		*/
-
 #if CONFIG_CB4X4
 	const int unify_bsize = 1;
 	const int pl = bsize_at_least_8x8
@@ -3645,8 +3553,6 @@ static void rd_pick_partition(const AV1_COMP *const cpi, ThreadData *td,
 	const int pl = partition_plane_context(xd, mi_row, mi_col, bsize);
 #endif  // CONFIG_CB4X4
 	const int *partition_cost = cpi->partition_cost[pl];
-//	const int *partition_cost = my_part_cost[pl];
-//	const int *partition_cost = my_zh;
 
 	int do_rectangular_split = 1;
 
@@ -3747,45 +3653,13 @@ static void rd_pick_partition(const AV1_COMP *const cpi, ThreadData *td,
 		if (this_rdc.rate != INT_MAX) {
 			if (bsize_at_least_8x8) {
 
-/*
-				printf("\npartition= 0 ctx= %d rate= %d dist= %d cost= %d actual_ctx= %d actual_rate= %d actual_cost= %d",
-					i, rate, this_rdc.dist, cost, pl, right_rate, right_cost);
-*/
-
-				if (condition)
-					for (int i = ctx_min; i < ctx_max; i++) {
-						const int *p_cost = cpi->partition_cost[i];
-						int rate = this_rdc.rate + p_cost[PARTITION_NONE];
-						int cost = RDCOST(x->rdmult, x->rddiv, rate, this_rdc.dist);
-
-						int right_rate = this_rdc.rate + partition_cost[PARTITION_NONE];
-						int right_cost = RDCOST(x->rdmult, x->rddiv, right_rate, this_rdc.dist);
-
-						//printf("\npartition= 0 ctx= %d rate= %d dist= %d cost= %d actual_ctx= %d actual_rate= %d actual_cost= %d",
-						//	i, rate, this_rdc.dist, cost, pl, right_rate, right_cost);
-
-					 printf("\npartition= 0 intra= %d ctx= %d rate= %d rate_partition= %d dist= %d cost= %d actual_ctx= %d actual_cost= %d", i, (**(x->e_mbd.mi)).mbmi.mode, rate, p_cost[PARTITION_NONE], this_rdc.dist, cost, pl, right_cost);
-					
-					//	printf("\npl= %d partition= 0 block_size: %d r= %d c= %d intra= %d distortion= %d rate= %d partition_cost= %d ", pl, bsize, mi_row, mi_col, (**(x->e_mbd.mi)).mbmi.mode, this_rdc.dist, this_rdc.rate, partition_cost[PARTITION_NONE]);
-
-					}
-
 				this_rdc.rate += partition_cost[PARTITION_NONE];
 				this_rdc.rdcost =
 					RDCOST(x->rdmult, x->rddiv, this_rdc.rate, this_rdc.dist);
 
 			}
 
-			//olya
-			if (RDCOST(x->rdmult, x->rddiv, this_rdc.rate - partition_cost[PARTITION_NONE], this_rdc.dist) < best_rdc.rdcost)
-				best_mode_by_tokenonly = PARTITION_NONE;
-			if (this_rdc.dist < best_rdc.dist)
-				best_mode_by_dist = PARTITION_NONE;
-
 			if (this_rdc.rdcost < best_rdc.rdcost) {
-
-				//olya
-				best_mode_for_us = PARTITION_NONE;
 
 				// Adjust dist breakout threshold according to the partition size.
 				const int64_t dist_breakout_thr =
@@ -3873,29 +3747,6 @@ static void rd_pick_partition(const AV1_COMP *const cpi, ThreadData *td,
 			}*/
 			reached_last_index = 1; // (idx == 4);
 			}
-		
-
-		    if (condition && reached_last_index)
-			for (int i = ctx_min; i < ctx_max; i++) {
-
-				const int *p_cost = cpi->partition_cost[i];
-				int rate = sum_rdc.rate + p_cost[PARTITION_SPLIT];
-				int cost = RDCOST(x->rdmult, x->rddiv, rate, sum_rdc.dist);
-
-				int right_rate = sum_rdc.rate + partition_cost[PARTITION_SPLIT];
-				int right_cost = RDCOST(x->rdmult, x->rddiv, right_rate, sum_rdc.dist);
-
-				 printf("\npartition= 3 ctx= %d rate= %d dist= %d cost= %d actual_ctx= %d rate_partition= %d actual_cost= %d",
-					i, rate, this_rdc.dist, cost, pl, p_cost[PARTITION_SPLIT], right_cost);
-			}
-
-		//olya
-			if (reached_last_index) {
-				if (RDCOST(x->rdmult, x->rddiv, sum_rdc.rate, sum_rdc.dist) < best_rdc.rdcost)
-					best_mode_by_tokenonly = PARTITION_SPLIT;
-				if (sum_rdc.dist < best_rdc.dist)
-					best_mode_by_dist = PARTITION_SPLIT;
-			}
 
 		if (reached_last_index && sum_rdc.rdcost < best_rdc.rdcost) {
 
@@ -3905,8 +3756,6 @@ static void rd_pick_partition(const AV1_COMP *const cpi, ThreadData *td,
 			if (sum_rdc.rdcost < best_rdc.rdcost) {
 				best_rdc = sum_rdc;
 				pc_tree->partitioning = PARTITION_SPLIT;
-				//olya
-				best_mode_for_us = PARTITION_SPLIT;
 			}
 		}
 		else if (cpi->sf.less_rectangular_check) {
@@ -3961,25 +3810,6 @@ static void rd_pick_partition(const AV1_COMP *const cpi, ThreadData *td,
 			}
 		}
 
-		if (condition)
-			for (int i = ctx_min; i < ctx_max; i++) {
-
-				const int *p_cost = cpi->partition_cost[i];
-				int rate = sum_rdc.rate + p_cost[PARTITION_HORZ];
-				int cost = RDCOST(x->rdmult, x->rddiv, rate, sum_rdc.dist);
-
-				int right_rate = sum_rdc.rate + partition_cost[PARTITION_HORZ];
-				int right_cost = RDCOST(x->rdmult, x->rddiv, right_rate, sum_rdc.dist);
-
-				 printf("\npartition= 1 ctx= %d rate= %d dist= %d cost= %d actual_ctx= %d actual_rate= %d actual_cost= %d",
-				i, rate, this_rdc.dist, cost, pl, right_rate, right_cost);
-			}
-
-		//olya
-			if (RDCOST(x->rdmult, x->rddiv, sum_rdc.rate, sum_rdc.dist) < best_rdc.rdcost)
-				best_mode_by_tokenonly = PARTITION_HORZ;
-			if (sum_rdc.dist < best_rdc.dist)
-				best_mode_by_dist = PARTITION_HORZ;
 
 		if (sum_rdc.rdcost < best_rdc.rdcost) {
 			sum_rdc.rate += partition_cost[PARTITION_HORZ];
@@ -3989,9 +3819,6 @@ static void rd_pick_partition(const AV1_COMP *const cpi, ThreadData *td,
 				best_rdc = sum_rdc;
 
 				pc_tree->partitioning = PARTITION_HORZ;
-
-				//olya
-				best_mode_for_us = PARTITION_HORZ;
 			}
 		}
 
@@ -4040,28 +3867,6 @@ static void rd_pick_partition(const AV1_COMP *const cpi, ThreadData *td,
 			}
 		}
 
-		if (condition)
-			for (int i = ctx_min; i < ctx_max; i++) {
-
-				const int *p_cost = cpi->partition_cost[i];
-				int rate = sum_rdc.rate + p_cost[PARTITION_VERT];
-				int cost = RDCOST(x->rdmult, x->rddiv, rate, sum_rdc.dist);
-
-				int right_rate = sum_rdc.rate + partition_cost[PARTITION_VERT];
-				int right_cost = RDCOST(x->rdmult, x->rddiv, right_rate, sum_rdc.dist);
-
-				 printf("\npartition= 2 ctx= %d rate= %d dist= %d cost= %d actual_ctx= %d actual_rate= %d actual_cost= %d",
-					i, rate, this_rdc.dist, cost, pl, right_rate, right_cost);
-
-				if(i== ctx_max-1)
-					printf("\n");
-			}
-
-		//olya
-		if (RDCOST(x->rdmult, x->rddiv, sum_rdc.rate, sum_rdc.dist) < best_rdc.rdcost)
-			best_mode_by_tokenonly = PARTITION_VERT;
-		if (sum_rdc.dist < best_rdc.dist)
-			best_mode_by_dist = PARTITION_VERT;
 
 		if (sum_rdc.rdcost < best_rdc.rdcost) {
 			sum_rdc.rate += partition_cost[PARTITION_VERT];
@@ -4071,17 +3876,10 @@ static void rd_pick_partition(const AV1_COMP *const cpi, ThreadData *td,
 				best_rdc = sum_rdc;
 
 				pc_tree->partitioning = PARTITION_VERT;
-
-				best_mode_for_us = PARTITION_VERT;
 			}
 		}
 		restore_context(x, &x_ctx, mi_row, mi_col, bsize);
 	}
-
-//olya
-	if (0 && bsize == 12) 
-		printf("\nbest: partition= %d pl= %d mode_rate= %d mode_by_tokenonly_cost= %d mode_by_dist= %d",
-			best_mode_for_us, pl, partition_cost[best_mode_for_us], best_mode_by_tokenonly, best_mode_by_dist);
 
 	// TODO(jbb): This code added so that we avoid static analysis
 	// warning related to the fact that best_rd isn't used after this
@@ -4838,7 +4636,7 @@ static void encode_rd_sb_row(AV1_COMP *cpi, ThreadData *td,
 	  root._mi_row = 0;
 	  root._pc_tree = pc_root;
 	  root._sb_size = cm->sb_size;
-	  root.set_children = false;
+	  root.visited = false;
 
 	  ranking_idx.push(root);
 
@@ -4846,8 +4644,9 @@ static void encode_rd_sb_row(AV1_COMP *cpi, ThreadData *td,
 
 		  tree_idx parameters = ranking_idx.top();
 
-		  working_idx.push_back(parameters);
-		  ranking_idx.pop();
+		  if(parameters.visited == false)
+			working_idx.push_back(parameters);
+//		  ranking_idx.pop();
 
 			  //это условие нужно, чтобы в дерево не входили разбиения 4х4
 			  //в оригинале оно было parameters._sb_size >= BLOCK_8X8
@@ -4860,7 +4659,11 @@ static void encode_rd_sb_row(AV1_COMP *cpi, ThreadData *td,
 			  const int mi_step = mi_size_wide[parameters._sb_size] / 2;
 
 			  //стек требует обратного порядка
-			  if (do_square_split) {
+			  if (do_square_split && parameters.visited == false ) {
+
+				  parameters.visited = true;
+				  ranking_idx.top().visited = true;
+
 				  for (int idx = 3; idx >= 0; idx--) {
 
 					  const int x_idx = (idx & 1) * mi_step;
@@ -4878,12 +4681,15 @@ static void encode_rd_sb_row(AV1_COMP *cpi, ThreadData *td,
 					  child._mi_row = parameters._mi_row + y_idx;
 					  child._sb_size = get_subsize(parameters._sb_size, PARTITION_SPLIT);
 					  child._pc_tree = parameters._pc_tree->split[idx];
-					  child.set_children = false;
+					  child.visited = false;
 
 					  ranking_idx.push(child);
-
 				  }
-//				  ranking_idx.top().set_children = true;
+
+			  }
+			  else
+			  {
+				  ranking_idx.pop();
 			  }
 	  }
 
